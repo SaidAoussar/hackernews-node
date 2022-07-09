@@ -1,64 +1,35 @@
 const path = require("path");
 const fs = require("fs");
 const { ApolloServer } = require("apollo-server");
-const { Prisma } = require("@prisma/client");
+const { PrismaClient } = require("@prisma/client");
+//resolvers
+const Query = require("./resolvers/Query");
+const Mutation = require("./resolvers/Mutation");
+const User = require("./resolvers/User");
+const Link = require("./resolvers/Link");
 
-let links = [
-  {
-    id: "link-0",
-    url: "www.howtographql.com",
-    description: "Fullstack tutorial for GraphQL"
-  }
-];
+const { getUserId } = require("./utils");
 
-console.log("length: ", links.length);
+// initiate instance of PrismaClient
+const prisma = new PrismaClient();
 
-// 2
 const resolvers = {
-  Query: {
-    info: () => `This is the API of a Hackernews Clone`,
-    feed: () => links,
-    link: (parent, args) => {
-      let link = links.find((link) => link.id == args.id);
-      return link;
-    }
-  },
-  Mutation: {
-    post: (parent, args) => {
-      let idCount = links.length;
-      const link = {
-        id: `link-${idCount++}`,
-        url: args.url,
-        description: args.description
-      };
-      links.push(link);
-      return link;
-    },
-    updateLink: (parent, args) => {
-      const linkIndex = links.findIndex((link) => args.id === link.id);
-      links[linkIndex].url = args.url;
-      links[linkIndex].description = args.description;
-
-      return links[linkIndex];
-    },
-    deleteLink: (parent, args) => {
-      const indexDeleteLink = links.findIndex((link) => args.id === link.id);
-      const deletedLink = links[indexDeleteLink];
-      console.log(indexDeleteLink);
-      if (indexDeleteLink < 0) {
-        return null;
-      }
-      if (links.splice(indexDeleteLink, 1)) {
-        return deletedLink;
-      }
-    }
-  }
+  Query,
+  Mutation,
+  User,
+  Link
 };
 
-// 3
 const server = new ApolloServer({
   typeDefs: fs.readFileSync(path.join(__dirname, "schema.graphql"), "utf8"),
-  resolvers
+  resolvers,
+  context: ({ req }) => {
+    return {
+      ...req,
+      prisma,
+      userId: req && req.headers.authorization ? getUserId(req) : null
+    };
+  }
 });
 
 server.listen().then(({ url }) => {
