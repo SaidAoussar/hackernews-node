@@ -4,7 +4,7 @@ const { APP_SECRET } = require("./../utils");
 
 const post = (parent, args, context) => {
   const { userId } = context;
-  const link = context.prisma.link.create({
+  const newLink = context.prisma.link.create({
     data: {
       url: args.url,
       description: args.description,
@@ -13,7 +13,8 @@ const post = (parent, args, context) => {
       }
     }
   });
-  return link;
+  context.pubsub.publish("NEW_LINK", newLink);
+  return newLink;
 };
 
 const updateLink = (parent, args, context) => {
@@ -40,6 +41,38 @@ const deleteLink = (parent, args, context) => {
   return deletedLink;
 };
 
+//vote
+
+async function vote(parent, args, context, info) {
+  // 1
+  const userId = context.userId;
+
+  // 2
+  const vote = await context.prisma.vote.findUnique({
+    where: {
+      linkId_userId: {
+        linkId: Number(args.linkId),
+        userId: userId
+      }
+    }
+  });
+
+  if (Boolean(vote)) {
+    throw new Error(`Already voted for link: ${args.linkId}`);
+  }
+
+  // 3
+  const newVote = context.prisma.vote.create({
+    data: {
+      user: { connect: { id: userId } },
+      link: { connect: { id: Number(args.linkId) } }
+    }
+  });
+  context.pubsub.publish("NEW_VOTE", newVote);
+
+  return newVote;
+}
+
 // signup
 
 async function signup(parent, args, context) {
@@ -58,7 +91,7 @@ async function signup(parent, args, context) {
     user
   };
 }
-
+//login
 async function login(parent, args, context) {
   const user = await context.prisma.user.findUnique({
     where: {
@@ -89,5 +122,6 @@ module.exports = {
   updateLink,
   deleteLink,
   signup,
-  login
+  login,
+  vote
 };
