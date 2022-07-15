@@ -2,22 +2,30 @@ const path = require("path");
 const fs = require("fs");
 const { ApolloServer } = require("apollo-server");
 const { PrismaClient } = require("@prisma/client");
+const { PubSub } = require("apollo-server");
 //resolvers
 const Query = require("./resolvers/Query");
 const Mutation = require("./resolvers/Mutation");
+const Subscription = require("./resolvers/Subscription");
 const User = require("./resolvers/User");
 const Link = require("./resolvers/Link");
+const Vote = require("./resolvers/Vote");
 
 const { getUserId } = require("./utils");
 
-// initiate instance of PrismaClient
+// creating an instance of PrismaClient
 const prisma = new PrismaClient();
+
+// creating an instance of PubSub
+const pubsub = new PubSub();
 
 const resolvers = {
   Query,
   Mutation,
+  Subscription,
   User,
-  Link
+  Link,
+  Vote
 };
 
 const server = new ApolloServer({
@@ -27,6 +35,7 @@ const server = new ApolloServer({
     return {
       ...req,
       prisma,
+      pubsub,
       userId: req && req.headers.authorization ? getUserId(req) : null
     };
   }
@@ -38,3 +47,4 @@ server.listen().then(({ url }) => {
 
 // https://www.prisma.io/blog/graphql-server-basics-the-schema-ac5e2950214e
 // https://www.freecodecamp.org/news/synchronous-vs-asynchronous-in-javascript/
+//https://www.apollographql.com/blog/graphql/pagination/understanding-pagination-rest-graphql-and-relay/
