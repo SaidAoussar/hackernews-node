@@ -1,8 +1,13 @@
 type Query {
   info: String!
-  feed: [Link!]!
+  feed(filter: String, skip: Int, take: Int, orderBy: LinkOrderByInput): Feed!
   # Fetch a single link by its `id`
   link(id: ID!): Link
+}
+
+type Feed {
+  links: [Link!]!
+  count: Int!
 }
 
 type Mutation {
@@ -11,6 +16,12 @@ type Mutation {
   deleteLink(id: ID!): Link
   signup(name: String!, email: String!, password: String!): AuthPayLoad
   login(email: String, password: String!): AuthPayLoad
+  vote(linkId: ID!): Vote
+}
+
+type Subscription {
+  newLink: Link
+  newVote: Vote
 }
 
 type Link {
@@ -18,6 +29,8 @@ type Link {
   description: String!
   url: String!
   postedBy: User
+  votes: [Vote!]!
+  createdAt: DateTime!
 }
 
 type User {
@@ -27,7 +40,26 @@ type User {
   links: [Link!]!
 }
 
+type Vote {
+  id: ID!
+  link: Link!
+  user: User!
+}
+
 type AuthPayLoad {
   token: String
   user: User
 }
+
+input LinkOrderByInput {
+  description: Sort
+  url: Sort
+  createdAt: Sort
+}
+
+enum Sort {
+  asc
+  desc
+}
+
+scalar DateTime
